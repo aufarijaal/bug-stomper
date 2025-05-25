@@ -1,31 +1,54 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/utils/supabase'
 
-export default function Login({
+export default function SignUp({
   searchParams,
 }: {
   searchParams: { message: string }
 }) {
-  const signIn = async (formData: FormData) => {
+  const signUp = async (formData: FormData) => {
     'use server'
 
+    const origin = headers().get('origin')
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    // Basic password validation
+    if (password.length < 6) {
+      return redirect(
+        '/signup?message=Password must be at least 6 characters long',
+      )
+    }
+
+    if (password !== confirmPassword) {
+      return redirect('/signup?message=Passwords do not match')
+    }
+
+    // TODO: Add additional password requirements validation here
+    // - uppercase letters
+    // - lowercase letters
+    // - digits
+    // - symbols
+
     const cookieStore = cookies()
     const supabase = createServerClient(cookieStore)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${origin}/api/auth/callback`,
+      },
     })
 
     if (error) {
-      return redirect('/login?message=Could not authenticate user')
+      return redirect('/signup?message=Could not create user')
     }
 
-    return redirect('/')
+    return redirect('/signup?message=Check email to continue sign in process')
   }
 
   return (
@@ -53,7 +76,7 @@ export default function Login({
 
       <form
         className="flex w-full flex-1 flex-col justify-center gap-2 text-foreground animate-in"
-        action={signIn}
+        action={signUp}
       >
         <label className="text-md" htmlFor="email">
           Email
@@ -68,19 +91,42 @@ export default function Login({
           Password
         </label>
         <input
-          className="mb-6 rounded-md border bg-inherit px-4 py-2"
+          className="mb-2 rounded-md border bg-inherit px-4 py-2"
           type="password"
           name="password"
           placeholder="••••••••"
           required
+          minLength={6}
+          pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$"
+          title="Must contain at least 6 characters"
+        />
+        <div className="mb-6 text-xs text-gray-500">
+          Password must:
+          <ul className="list-disc pl-5">
+            <li>Be at least 6 characters long</li>
+            {/* <li>TODO: Contain uppercase letters</li>
+            <li>TODO: Contain lowercase letters</li>
+            <li>TODO: Contain numbers</li>
+            <li>TODO: Contain symbols</li> */}
+          </ul>
+        </div>
+        <label className="text-md" htmlFor="confirmPassword">
+          Confirm Password
+        </label>
+        <input
+          className="mb-6 rounded-md border bg-inherit px-4 py-2"
+          type="password"
+          name="confirmPassword"
+          placeholder="••••••••"
+          required
         />
         <button className="mb-2 rounded-md bg-green-700 px-4 py-2 text-foreground">
-          Sign In
+          Sign Up
         </button>
         <p className="text-center">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-green-700 hover:underline">
-            Sign up
+          Already have an account?{' '}
+          <Link href="/login" className="text-green-700 hover:underline">
+            Sign in
           </Link>
         </p>
         {searchParams?.message && (
