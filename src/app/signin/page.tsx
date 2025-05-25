@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/utils/supabase'
 
-export default function Login({
+export default function SignIn({
   searchParams,
 }: {
   searchParams: { message: string }
